@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乐乐浏览器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="browser-container">
+        <!-- 浏览器顶部栏 -->
+        <div class="top-bar">
+            <div class="browser-info">
+                <div class="logo">😊 乐乐</div>
+            </div>
+            
+            <div class="tab-container">
+                <div class="tab active" data-tab-id="1">
+                    <span class="tab-title">新标签页</span>
+                    <button class="tab-close">×</button>
+                </div>
+                <button class="new-tab-btn" title="新建标签页">+</button>
+            </div>
+            
+            <div class="nav-controls">
+                <button class="nav-btn" id="backBtn" title="后退" disabled>←</button>
+                <button class="nav-btn" id="forwardBtn" title="前进" disabled>→</button>
+                <button class="nav-btn" id="reloadBtn" title="刷新">⟳</button>
+            </div>
+            
+            <div class="address-bar">
+                <div class="url-container">
+                    <span class="url-icon">🔒</span>
+                    <input type="text" id="urlInput" placeholder="搜索或输入网址...">
+                    <button id="searchBtn" title="搜索">🔍</button>
+                </div>
+            </div>
+            
+            <div class="browser-controls">
+                <button class="control-btn" id="homeBtn" title="主页">🏠</button>
+                <button class="control-btn" id="bookmarkBtn" title="收藏">⭐</button>
+                <button class="control-btn" id="settingsBtn" title="设置">⚙️</button>
+            </div>
+        </div>
+        
+        <!-- 主内容区域 -->
+        <div class="content-area">
+            <div class="tab-content active" data-tab-id="1">
+                <!-- 起始页 -->
+                <div class="start-page">
+                    <div class="welcome-section">
+                        <div class="logo-large">😊</div>
+                        <h1>欢迎使用乐乐浏览器</h1>
+                        <p class="subtitle">简单、快速、安全的上网体验</p>
+                    </div>
+                    
+                    <div class="search-section">
+                        <div class="search-container">
+                            <input type="text" id="mainSearch" placeholder="搜索网络或输入网址...">
+                            <button id="mainSearchBtn">搜索</button>
+                        </div>
+                    </div>
+                    
+                    <div class="quick-access">
+                        <h3>快速访问</h3>
+                        <div class="links-grid">
+                            <div class="quick-link" data-url="https://github.com">
+                                <div class="link-icon">🐙</div>
+                                <div class="link-title">GitHub</div>
+                                <div class="link-desc">代码托管平台</div>
+                            </div>
+                            <div class="quick-link" data-url="https://stackoverflow.com">
+                                <div class="link-icon">📚</div>
+                                <div class="link-title">Stack Overflow</div>
+                                <div class="link-desc">编程问答社区</div>
+                            </div>
+                            <div class="quick-link" data-url="https://developer.mozilla.org">
+                                <div class="link-icon">🔧</div>
+                                <div class="link-title">MDN Web Docs</div>
+                                <div class="link-desc">Web开发文档</div>
+                            </div>
+                            <div class="quick-link" data-url="https://www.npmjs.com">
+                                <div class="link-icon">📦</div>
+                                <div class="link-title">NPM</div>
+                                <div class="link-desc">Node.js包管理</div>
+                            </div>
+                            <div class="quick-link" data-url="https://www.bilibili.com">
+                                <div class="link-icon">📺</div>
+                                <div class="link-title">哔哩哔哩</div>
+                                <div class="link-desc">弹幕视频网站</div>
+                            </div>
+                            <div class="quick-link" data-url="https://www.zhihu.com">
+                                <div class="link-icon">💡</div>
+                                <div class="link-title">知乎</div>
+                                <div class="link-desc">知识分享社区</div>
+                            </div>
+                            <div class="quick-link" data-url="https://www.baidu.com">
+                                <div class="link-icon">🔍</div>
+                                <div class="link-title">百度</div>
+                                <div class="link-desc">搜索引擎</div>
+                            </div>
+                            <div class="quick-link" data-url="https://www.taobao.com">
+                                <div class="link-icon">🛒</div>
+                                <div class="link-title">淘宝</div>
+                                <div class="link-desc">购物平台</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 搜索结果显示区域 -->
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+                
+                <!-- WebView区域 -->
+                <webview id="webview1" class="webview hidden" 
+                         src="about:blank" 
+                         allowpopups
+                         useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) LeleBrowser/1.0.0 Chrome/120.0.0.0 Safari/537.36">
+                </webview>
+            </div>
+        </div>
+        
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <div class="status-left">
+                <span id="statusText">就绪</span>
+                <span id="loadingIndicator" class="loading-indicator hidden">⟳</span>
+            </div>
+            <div class="status-right">
+                <span id="appInfo">乐乐浏览器 v1.0.0</span>
+                <span id="securityStatus" class="security-status">🔒 安全</span>
+            </div>
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
+    </div>
+    
+    <!-- 右键菜单 -->
+    <div id="contextMenu" class="context-menu hidden">
+        <div class="menu-item" data-action="back">后退</div>
+        <div class="menu-item" data-action="forward">前进</div>
+        <div class="menu-item" data-action="reload">刷新</div>
+        <div class="menu-separator"></div>
+        <div class="menu-item" data-action="copy-url">复制链接</div>
+        <div class="menu-item" data-action="new-tab">新建标签页</div>
+        <div class="menu-separator"></div>
+        <div class="menu-item" data-action="developer-tools">开发者工具</div>
+    </div>
+    
+    <!-- 设置面板 -->
+    <div id="settingsPanel" class="settings-panel hidden">
+        <div class="settings-header">
+            <h2>乐乐浏览器设置</h2>
+            <button class="close-settings">×</button>
+        </div>
+        <div class="settings-content">
+            <div class="setting-group">
+                <h3>常规设置</h3>
+                <div class="setting-item">
+                    <label>
+                        <input type="text" id="homepageUrl" placeholder="设置主页地址">
+                        <span>主页地址</span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="showBookmarkBar">
+                        <span>显示书签栏</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="setting-group">
+                <h3>搜索引擎</h3>
+                <div class="setting-item">
+                    <select id="searchEngine">
+                        <option value="duckduckgo">DuckDuckGo (默认)</option>
+                        <option value="google">Google</option>
+                        <option value="bing">Bing</option>
+                        <option value="baidu">百度</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="setting-group">
+                <h3>隐私和安全</h3>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="blockAds" checked>
+                        <span>阻止广告</span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="blockTrackers" checked>
+                        <span>阻止跟踪器</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="setting-group">
+                <h3>关于</h3>
+                <div class="about-info">
+                    <p><strong>乐乐浏览器</strong> v1.0.0</p>
+                    <p>基于 Electron 开发的现代浏览器</p>
+                    <p>专注于简单、快速、安全的浏览体验</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 加载脚本 -->
+    <script src="renderer.js"></script>
+</body>
+</html>
