@@ -1,10 +1,5 @@
-// 乐乐浏览器 - 前端逻辑文件
-console.log('🚀 乐乐浏览器前端脚本开始加载...');
-
-// 全局变量
-let tabCounter = 1;
-let currentTabId = 1;
-let tabs = new Map();
+// 乐乐浏览器 - 使用真正webview版本
+console.log('🚀 乐乐浏览器启动（webview版本）...');
 
 // 搜索引擎配置
 const searchEngines = {
@@ -30,43 +25,281 @@ const searchEngines = {
     }
 };
 
-// 默认设置
 let currentSearchEngine = 'google';
 
-// 等待页面加载完成
+// 等待页面加载
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ 页面加载完成，开始初始化...');
+    console.log('✅ 页面加载完成');
     
-    // 初始化浏览器
-    initializeBrowser();
+    // 检查并修复webview
+    fixWebview();
     
-    console.log('🎉 乐乐浏览器初始化完成！');
+    // 设置事件监听器
+    setupEvents();
+    
+    // 修复设置面板
+    fixSettingsPanel();
+    
+    console.log('🎉 初始化完成！');
+    updateStatus('乐乐浏览器已就绪 - 使用真正的webview');
 });
 
-// 初始化浏览器功能
-function initializeBrowser() {
-    // 初始化标签页
-    initializeTabs();
+// 修复webview
+function fixWebview() {
+    console.log('🔧 检查webview配置...');
     
-    // 设置所有事件监听器
-    setupEventListeners();
-    
-    // 更新状态
-    updateStatus('乐乐浏览器已就绪');
+    const webview = document.getElementById('webview1');
+    if (webview) {
+        console.log('✅ 找到原始webview');
+        
+        // 确保webview有正确的属性
+        webview.setAttribute('allowpopups', '');
+        webview.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 LeleBrowser/1.0.0');
+        webview.setAttribute('webpreferences', 'contextIsolation=false, webSecurity=false');
+        
+        // 设置webview事件
+        setupWebviewEvents(webview);
+        
+        console.log('✅ webview配置完成');
+    } else {
+        console.log('❌ 未找到webview，创建新的...');
+        createNewWebview();
+    }
 }
 
-// 初始化标签页
-function initializeTabs() {
-    tabs.set(1, {
-        id: 1,
-        title: '新标签页',
-        url: '',
-        loading: false
+// 创建新的webview
+function createNewWebview() {
+    const tabContent = document.querySelector('.tab-content.active');
+    if (tabContent) {
+        // 移除可能存在的iframe
+        const existingFrame = document.getElementById('testFrame');
+        if (existingFrame) {
+            existingFrame.remove();
+        }
+        
+        // 创建新的webview
+        const webview = document.createElement('webview');
+        webview.id = 'webview1';
+        webview.className = 'webview hidden';
+        webview.style.width = '100%';
+        webview.style.height = '100%';
+        webview.src = 'about:blank';
+        webview.setAttribute('allowpopups', '');
+        webview.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 LeleBrowser/1.0.0');
+        webview.setAttribute('webpreferences', 'contextIsolation=false, webSecurity=false');
+        
+        tabContent.appendChild(webview);
+        
+        // 设置事件
+        setupWebviewEvents(webview);
+        
+        console.log('✅ 新webview创建完成');
+    }
+}
+
+// 设置webview事件
+function setupWebviewEvents(webview) {
+    console.log('⚙️ 设置webview事件...');
+    
+    webview.addEventListener('did-start-loading', function() {
+        console.log('🔄 页面开始加载');
+        updateStatus('正在加载页面...');
+        showProgress(true);
     });
+    
+    webview.addEventListener('did-stop-loading', function() {
+        console.log('✅ 页面加载完成');
+        updateStatus('页面加载完成');
+        showProgress(false);
+        updateNavButtons();
+    });
+    
+    webview.addEventListener('page-title-updated', function(e) {
+        console.log('📄 页面标题更新:', e.title);
+        updateTabTitle(e.title || '新标签页');
+    });
+    
+    webview.addEventListener('did-navigate', function(e) {
+        console.log('🧭 页面导航:', e.url);
+        const urlInput = document.getElementById('urlInput');
+        if (urlInput) {
+            urlInput.value = e.url;
+        }
+        updateNavButtons();
+    });
+    
+    webview.addEventListener('did-fail-load', function(e) {
+        if (e.errorCode !== -3) { // 忽略取消的请求
+            console.log('❌ 页面加载失败:', e.errorDescription);
+            updateStatus('页面加载失败: ' + e.errorDescription);
+            showErrorPage(e.errorDescription);
+        }
+    });
+    
+    webview.addEventListener('dom-ready', function() {
+        console.log('🎯 DOM就绪');
+        updateStatus('页面渲染完成');
+    });
+    
+    // 处理新窗口
+    webview.addEventListener('new-window', function(e) {
+        console.log('🆕 新窗口请求:', e.url);
+        e.preventDefault();
+        loadUrl(e.url);
+    });
+    
+    console.log('✅ webview事件设置完成');
+}
+
+// 修复设置面板
+function fixSettingsPanel() {
+    console.log('🔧 修复设置面板...');
+    
+    let settingsPanel = document.getElementById('settingsPanel');
+    if (!settingsPanel) {
+        createSettingsPanel();
+        settingsPanel = document.getElementById('settingsPanel');
+    }
+    
+    if (settingsPanel) {
+        settingsPanel.style.position = 'fixed';
+        settingsPanel.style.top = '0';
+        settingsPanel.style.right = '-400px';
+        settingsPanel.style.width = '400px';
+        settingsPanel.style.height = '100vh';
+        settingsPanel.style.backgroundColor = 'white';
+        settingsPanel.style.boxShadow = '-4px 0 20px rgba(0,0,0,0.1)';
+        settingsPanel.style.zIndex = '1000';
+        settingsPanel.style.transition = 'right 0.3s ease';
+        settingsPanel.style.overflowY = 'auto';
+        
+        setupSettingsPanelEvents();
+        console.log('✅ 设置面板配置完成');
+    }
+}
+
+// 创建设置面板
+function createSettingsPanel() {
+    const settingsHTML = `
+        <div id="settingsPanel" class="settings-panel hidden">
+            <div class="settings-header" style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="margin: 0; font-size: 1.5rem; font-weight: 300;">乐乐浏览器设置</h2>
+                <button class="close-settings" id="closeSettingsBtn" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 4px; border-radius: 4px;">×</button>
+            </div>
+            <div class="settings-content" style="padding: 20px;">
+                <div class="setting-group" style="margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px; color: #333; font-size: 1.2rem;">搜索引擎</h3>
+                    <div class="setting-item" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px;">选择默认搜索引擎：</label>
+                        <select id="searchEngineSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="google">Google</option>
+                            <option value="baidu">百度</option>
+                            <option value="bing">Bing</option>
+                            <option value="duckduckgo">DuckDuckGo</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="setting-group" style="margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px; color: #333; font-size: 1.2rem;">快速测试</h3>
+                    <div class="setting-item">
+                        <p style="margin-bottom: 10px;">点击测试网站加载：</p>
+                        <button onclick="testLoad('https://www.google.com')" style="margin: 2px; padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 3px; cursor: pointer;">Google</button>
+                        <button onclick="testLoad('https://www.baidu.com')" style="margin: 2px; padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 3px; cursor: pointer;">百度</button>
+                        <button onclick="testLoad('https://github.com')" style="margin: 2px; padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 3px; cursor: pointer;">GitHub</button>
+                        <button onclick="testLoad('https://www.bing.com')" style="margin: 2px; padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 3px; cursor: pointer;">Bing</button>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <h3 style="margin-bottom: 15px; color: #333; font-size: 1.2rem;">关于</h3>
+                    <div class="about-info" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                        <p style="margin-bottom: 10px;"><strong>乐乐浏览器</strong> v1.0.0</p>
+                        <p style="margin-bottom: 5px;">基于 Electron 开发</p>
+                        <p style="margin-bottom: 5px;">使用 webview 技术</p>
+                        <p style="margin-bottom: 10px;">邮箱：support@lelemail.online</p>
+                        <hr style="margin: 10px 0; border: none; border-top: 1px solid #eee;">
+                        <p style="font-size: 0.9em; color: #666;">
+                            现在使用真正的webview标签，应该能正常加载所有网站了！
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', settingsHTML);
+    console.log('✅ 设置面板HTML已创建');
+}
+
+// 测试加载网站
+function testLoad(url) {
+    console.log('🧪 测试加载:', url);
+    loadUrl(url);
+    hideSettingsPanel();
+}
+
+// 设置面板事件
+function setupSettingsPanelEvents() {
+    const closeBtn = document.getElementById('closeSettingsBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', hideSettingsPanel);
+    }
+    
+    const searchEngineSelect = document.getElementById('searchEngineSelect');
+    if (searchEngineSelect) {
+        searchEngineSelect.value = currentSearchEngine;
+        
+        searchEngineSelect.addEventListener('change', function() {
+            currentSearchEngine = this.value;
+            const engineName = searchEngines[currentSearchEngine].name;
+            console.log('🔍 搜索引擎切换为:', engineName);
+            updateStatus('搜索引擎已切换为: ' + engineName);
+        });
+    }
+}
+
+// 显示/隐藏设置面板
+function showSettingsPanel() {
+    const settingsPanel = document.getElementById('settingsPanel');
+    if (settingsPanel) {
+        console.log('⚙️ 显示设置面板');
+        settingsPanel.classList.remove('hidden');
+        settingsPanel.style.right = '0px';
+        updateStatus('设置面板已打开');
+    }
+}
+
+function hideSettingsPanel() {
+    const settingsPanel = document.getElementById('settingsPanel');
+    if (settingsPanel) {
+        console.log('❌ 隐藏设置面板');
+        settingsPanel.style.right = '-400px';
+        setTimeout(() => {
+            settingsPanel.classList.add('hidden');
+        }, 300);
+        updateStatus('设置面板已关闭');
+    }
+}
+
+function toggleSettingsPanel() {
+    const settingsPanel = document.getElementById('settingsPanel');
+    if (settingsPanel) {
+        const isVisible = settingsPanel.style.right === '0px';
+        if (isVisible) {
+            hideSettingsPanel();
+        } else {
+            showSettingsPanel();
+        }
+    } else {
+        createSettingsPanel();
+        fixSettingsPanel();
+        setTimeout(showSettingsPanel, 100);
+    }
 }
 
 // 设置事件监听器
-function setupEventListeners() {
+function setupEvents() {
     console.log('⚙️ 设置事件监听器...');
     
     // 地址栏搜索
@@ -102,79 +335,175 @@ function setupEventListeners() {
     }
     
     // 导航按钮
+    setupNavigationButtons();
+    
+    // 快速访问链接
+    setupQuickLinks();
+    
+    // 设置按钮
+    const settingsBtn = document.getElementById('settingsBtn');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('⚙️ 设置按钮被点击！');
+            toggleSettingsPanel();
+        });
+    }
+    
+    // 点击外部关闭设置面板
+    document.addEventListener('click', function(e) {
+        const settingsPanel = document.getElementById('settingsPanel');
+        const settingsBtn = document.getElementById('settingsBtn');
+        
+        if (settingsPanel && settingsBtn) {
+            const isClickInsidePanel = settingsPanel.contains(e.target);
+            const isClickOnSettingsBtn = settingsBtn.contains(e.target);
+            const isPanelVisible = settingsPanel.style.right === '0px';
+            
+            if (isPanelVisible && !isClickInsidePanel && !isClickOnSettingsBtn) {
+                hideSettingsPanel();
+            }
+        }
+    });
+    
+    console.log('✅ 所有事件监听器设置完成');
+}
+
+// 加载URL
+function loadUrl(url) {
+    console.log('🌐 加载URL:', url);
+    
+    const formattedUrl = formatUrl(url);
+    const webview = document.getElementById('webview1');
+    const startPage = document.querySelector('.start-page');
+    
+    if (webview && startPage) {
+        try {
+            // 隐藏起始页，显示webview
+            startPage.style.display = 'none';
+            webview.classList.remove('hidden');
+            
+            // 更新地址栏
+            const urlInput = document.getElementById('urlInput');
+            if (urlInput) {
+                urlInput.value = formattedUrl;
+            }
+            
+            // 加载页面
+            webview.src = formattedUrl;
+            
+            updateStatus('正在加载: ' + formattedUrl);
+            updateTabTitle('正在加载...');
+            
+            console.log('✅ 开始加载webview:', formattedUrl);
+            
+        } catch (error) {
+            console.error('❌ 加载URL时出错:', error);
+            updateStatus('加载失败: ' + error.message);
+            showErrorPage('加载失败');
+        }
+    } else {
+        console.log('❌ webview或startPage未找到');
+        if (!webview) {
+            console.log('重新创建webview...');
+            createNewWebview();
+            setTimeout(() => loadUrl(url), 1000);
+        }
+    }
+}
+
+// 导航webview
+function navigateWebview(action) {
+    const webview = document.getElementById('webview1');
+    if (!webview) {
+        console.log('❌ webview未找到');
+        return;
+    }
+    
+    console.log('🧭 导航操作:', action);
+    
+    switch (action) {
+        case 'back':
+            if (webview.canGoBack()) {
+                webview.goBack();
+                updateStatus('返回上一页');
+            }
+            break;
+        case 'forward':
+            if (webview.canGoForward()) {
+                webview.goForward();
+                updateStatus('前进到下一页');
+            }
+            break;
+        case 'reload':
+            webview.reload();
+            updateStatus('正在刷新页面');
+            break;
+    }
+    
+    setTimeout(updateNavButtons, 100);
+}
+
+// 更新导航按钮状态
+function updateNavButtons() {
+    const webview = document.getElementById('webview1');
+    const backBtn = document.getElementById('backBtn');
+    const forwardBtn = document.getElementById('forwardBtn');
+    
+    if (webview && backBtn && forwardBtn) {
+        backBtn.disabled = !webview.canGoBack();
+        forwardBtn.disabled = !webview.canGoForward();
+        console.log('🔄 导航按钮状态已更新');
+    }
+}
+
+// 设置导航按钮
+function setupNavigationButtons() {
     const backBtn = document.getElementById('backBtn');
     const forwardBtn = document.getElementById('forwardBtn');
     const reloadBtn = document.getElementById('reloadBtn');
     const homeBtn = document.getElementById('homeBtn');
     
     if (backBtn) {
-        backBtn.addEventListener('click', function() {
-            navigateWebview('back');
-        });
+        backBtn.addEventListener('click', () => navigateWebview('back'));
     }
     
     if (forwardBtn) {
-        forwardBtn.addEventListener('click', function() {
-            navigateWebview('forward');
-        });
+        forwardBtn.addEventListener('click', () => navigateWebview('forward'));
     }
     
     if (reloadBtn) {
-        reloadBtn.addEventListener('click', function() {
-            navigateWebview('reload');
-        });
+        reloadBtn.addEventListener('click', () => navigateWebview('reload'));
     }
     
     if (homeBtn) {
         homeBtn.addEventListener('click', function() {
-            goHome();
+            const engine = searchEngines[currentSearchEngine];
+            loadUrl(engine.homepage);
         });
     }
     
-    // 新标签页按钮
-    const newTabBtn = document.querySelector('.new-tab-btn');
-    if (newTabBtn) {
-        newTabBtn.addEventListener('click', function() {
-            createNewTab();
-        });
-    }
-    
-    // 设置按钮
-    const settingsBtn = document.getElementById('settingsBtn');
-    if (settingsBtn) {
-        settingsBtn.addEventListener('click', function() {
-            toggleSettings();
-        });
-    }
-    
-    // 快速访问链接
+    console.log('✅ 导航按钮事件已设置');
+}
+
+// 设置快速访问链接
+function setupQuickLinks() {
     const quickLinks = document.querySelectorAll('.quick-link');
+    console.log('🔗 找到快速访问链接数量:', quickLinks.length);
+    
     quickLinks.forEach(function(link) {
         link.addEventListener('click', function() {
             const url = this.getAttribute('data-url');
             if (url) {
+                console.log('🔗 快速访问链接被点击:', url);
                 loadUrl(url);
             }
         });
     });
-    
-    // 标签页关闭按钮
-    const tabCloseButtons = document.querySelectorAll('.tab-close');
-    tabCloseButtons.forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            // 由于只有一个标签页，不执行关闭操作
-            console.log('标签页关闭功能暂未实现');
-        });
-    });
-    
-    // 设置面板事件
-    setupSettingsPanel();
-    
-    console.log('✅ 事件监听器设置完成');
 }
 
-// 处理地址栏搜索
+// 处理搜索
 function handleSearch() {
     const urlInput = document.getElementById('urlInput');
     if (!urlInput) return;
@@ -191,7 +520,6 @@ function handleSearch() {
     }
 }
 
-// 处理主页搜索
 function handleMainSearch() {
     const mainSearch = document.getElementById('mainSearch');
     if (!mainSearch) return;
@@ -208,27 +536,22 @@ function handleMainSearch() {
     }
 }
 
-// 执行搜索
 function performSearch(query) {
     const engine = searchEngines[currentSearchEngine];
     if (engine) {
         const searchUrl = engine.searchUrl + encodeURIComponent(query);
+        console.log('🔍 执行搜索:', searchUrl);
         loadUrl(searchUrl);
-        updateStatus('正在使用' + engine.name + '搜索: ' + query);
     }
 }
 
-// 检查是否为URL
+// 辅助函数
 function isUrl(text) {
-    try {
-        new URL(text.includes('://') ? text : 'http://' + text);
-        return true;
-    } catch {
-        return false;
-    }
+    const urlPattern = /^(https?:\/\/)|(www\.)/i;
+    const domainPattern = /\.[a-z]{2,}$/i;
+    return urlPattern.test(text) || domainPattern.test(text);
 }
 
-// 格式化URL
 function formatUrl(url) {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -237,191 +560,21 @@ function formatUrl(url) {
     return 'https://' + url;
 }
 
-// 加载URL
-function loadUrl(url) {
-    console.log('🌐 加载URL:', url);
-    
-    const formattedUrl = formatUrl(url);
-    const webview = document.getElementById('webview1');
-    const startPage = document.querySelector('.start-page');
-    
-    if (webview && startPage) {
-        // 隐藏起始页，显示webview
-        startPage.style.display = 'none';
-        webview.classList.remove('hidden');
-        webview.src = formattedUrl;
-        
-        // 更新地址栏
-        const urlInput = document.getElementById('urlInput');
-        if (urlInput) {
-            urlInput.value = formattedUrl;
-        }
-        
-        // 更新状态
-        updateStatus('正在加载: ' + formattedUrl);
-        updateTabTitle('正在加载...');
-        
-        // 设置webview事件
-        setupWebviewEvents(webview);
-    }
-}
-
-// 设置webview事件
-function setupWebviewEvents(webview) {
-    // 页面开始加载
-    webview.addEventListener('did-start-loading', function() {
-        updateStatus('正在加载页面...');
-        showProgress(true);
-    });
-    
-    // 页面加载完成
-    webview.addEventListener('did-stop-loading', function() {
-        updateStatus('页面加载完成');
-        showProgress(false);
-        updateNavButtons();
-    });
-    
-    // 页面标题更新
-    webview.addEventListener('page-title-updated', function(e) {
-        updateTabTitle(e.title || '新标签页');
-    });
-    
-    // 页面导航
-    webview.addEventListener('did-navigate', function(e) {
-        const urlInput = document.getElementById('urlInput');
-        if (urlInput) {
-            urlInput.value = e.url;
-        }
-        updateNavButtons();
-    });
-    
-    // 页面加载失败
-    webview.addEventListener('did-fail-load', function(e) {
-        if (e.errorCode !== -3) { // 忽略取消的请求
-            updateStatus('页面加载失败: ' + e.errorDescription);
-            showErrorPage();
-        }
-    });
-}
-
-// 导航webview
-function navigateWebview(action) {
-    const webview = document.getElementById('webview1');
-    if (!webview) return;
-    
-    console.log('🧭 导航操作:', action);
-    
-    switch (action) {
-        case 'back':
-            if (webview.canGoBack()) {
-                webview.goBack();
-            }
-            break;
-        case 'forward':
-            if (webview.canGoForward()) {
-                webview.goForward();
-            }
-            break;
-        case 'reload':
-            webview.reload();
-            break;
-    }
-    
-    // 延迟更新按钮状态
-    setTimeout(updateNavButtons, 100);
-}
-
-// 更新导航按钮状态
-function updateNavButtons() {
-    const webview = document.getElementById('webview1');
-    const backBtn = document.getElementById('backBtn');
-    const forwardBtn = document.getElementById('forwardBtn');
-    
-    if (webview && backBtn && forwardBtn) {
-        backBtn.disabled = !webview.canGoBack();
-        forwardBtn.disabled = !webview.canGoForward();
-    }
-}
-
-// 回到主页
-function goHome() {
-    const engine = searchEngines[currentSearchEngine];
-    if (engine) {
-        loadUrl(engine.homepage);
-    }
-}
-
-// 创建新标签页（简化版）
-function createNewTab() {
-    console.log('📂 创建新标签页功能开发中...');
-    updateStatus('新标签页功能开发中...');
-}
-
-// 切换设置面板
-function toggleSettings() {
-    const settingsPanel = document.getElementById('settingsPanel');
-    if (settingsPanel) {
-        settingsPanel.classList.toggle('show');
-        console.log('⚙️ 切换设置面板');
-    }
-}
-
-// 设置面板事件
-function setupSettingsPanel() {
-    // 关闭设置按钮
-    const closeSettings = document.querySelector('.close-settings');
-    if (closeSettings) {
-        closeSettings.addEventListener('click', function() {
-            const settingsPanel = document.getElementById('settingsPanel');
-            if (settingsPanel) {
-                settingsPanel.classList.remove('show');
-            }
-        });
-    }
-    
-    // 搜索引擎选择
-    const searchEngineSelect = document.getElementById('searchEngine');
-    if (searchEngineSelect) {
-        // 填充选项
-        searchEngineSelect.innerHTML = '';
-        Object.keys(searchEngines).forEach(function(key) {
-            const option = document.createElement('option');
-            option.value = key;
-            option.textContent = searchEngines[key].name;
-            if (key === currentSearchEngine) {
-                option.selected = true;
-            }
-            searchEngineSelect.appendChild(option);
-        });
-        
-        // 监听变化
-        searchEngineSelect.addEventListener('change', function() {
-            currentSearchEngine = this.value;
-            const engineName = searchEngines[currentSearchEngine].name;
-            updateStatus('搜索引擎已切换为: ' + engineName);
-            console.log('🔍 搜索引擎切换为:', engineName);
-        });
-    }
-}
-
-// 更新标签页标题
 function updateTabTitle(title) {
     const tabTitle = document.querySelector('.tab-title');
     if (tabTitle) {
-        tabTitle.textContent = title;
+        tabTitle.textContent = title || '新标签页';
     }
 }
 
-// 更新状态
 function updateStatus(message) {
     const statusText = document.getElementById('statusText');
     if (statusText) {
         statusText.textContent = message;
     }
-    console.log('📊 状态:', message);
+    console.log('📊 状态更新:', message);
 }
 
-// 显示/隐藏进度
 function showProgress(show) {
     const progressBar = document.getElementById('progressBar');
     const loadingIndicator = document.getElementById('loadingIndicator');
@@ -435,8 +588,7 @@ function showProgress(show) {
     }
 }
 
-// 显示错误页面
-function showErrorPage() {
+function showErrorPage(error) {
     const webview = document.getElementById('webview1');
     const startPage = document.querySelector('.start-page');
     const searchResults = document.getElementById('searchResults');
@@ -449,9 +601,13 @@ function showErrorPage() {
             searchResults.innerHTML = `
                 <div class="result-item">
                     <div class="result-title">🚫 页面加载失败</div>
-                    <div class="result-description">无法连接到该网站，请检查网络连接或稍后重试。</div>
-                    <div style="margin-top: 10px;">
-                        <button onclick="navigateWebview('reload')" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">重新加载</button>
+                    <div class="result-description">
+                        错误信息: ${error}<br><br>
+                        请检查网络连接或尝试其他网站。
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <button onclick="navigateWebview('reload')" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">重新加载</button>
+                        <button onclick="loadUrl('https://www.google.com')" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">访问Google</button>
                     </div>
                 </div>
             `;
@@ -459,37 +615,9 @@ function showErrorPage() {
     }
 }
 
-// 键盘快捷键
-document.addEventListener('keydown', function(e) {
-    // Ctrl+T 新建标签页
-    if ((e.ctrlKey || e.metaKey) && e.key === 't') {
-        e.preventDefault();
-        createNewTab();
-    }
-    
-    // Ctrl+R 刷新
-    if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
-        e.preventDefault();
-        navigateWebview('reload');
-    }
-    
-    // F5 刷新
-    if (e.key === 'F5') {
-        e.preventDefault();
-        navigateWebview('reload');
-    }
-});
+// 全局函数（供HTML按钮调用）
+window.testLoad = testLoad;
+window.loadUrl = loadUrl;
+window.navigateWebview = navigateWebview;
 
-// 阻止默认右键菜单
-document.addEventListener('contextmenu', function(e) {
-    e.preventDefault();
-});
-
-// 全局错误处理
-window.addEventListener('error', function(e) {
-    console.error('❌ 全局错误:', e.error);
-    updateStatus('应用程序出现错误');
-});
-
-console.log('🎉 乐乐浏览器前端脚本加载完成！');
-console.log('🔍 当前搜索引擎:', searchEngines[currentSearchEngine].name);
+console.log('🎉 乐乐浏览器webview版本加载完成！');
